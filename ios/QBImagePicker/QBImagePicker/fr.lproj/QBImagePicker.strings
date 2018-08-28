@@ -1,4 +1,4 @@
-/* 
+/*
   QBImagePicker.strings
   QBImagePicker
 
@@ -19,3 +19,5 @@
 
 "assets.toolbar.item-selected" = "%ld Élément Sélectionné";
 "assets.toolbar.items-selected" = "%ld Éléments Sélectionnés";
+
+"moments.title" = "Moments";
