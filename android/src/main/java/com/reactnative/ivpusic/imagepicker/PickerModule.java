@@ -19,6 +19,9 @@ import android.util.Base64;
 import android.webkit.MimeTypeMap;
 import android.content.ContentResolver;
 
+import com.esafirm.imagepicker.features.ImagePicker;
+import com.esafirm.imagepicker.features.ReturnMode;
+import com.esafirm.imagepicker.model.Image;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Promise;
@@ -89,6 +92,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
     private final String DEFAULT_WIDGET_COLOR = "#03A9F4";
     private int width = 200;
     private int height = 200;
+    private int maxFiles = null;
 
     private Uri mCameraCaptureURI;
     private String mCurrentPhotoPath;
@@ -122,6 +126,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
         width = options.hasKey("width") ? options.getInt("width") : width;
         height = options.hasKey("height") ? options.getInt("height") : height;
         cropping = options.hasKey("cropping") ? options.getBoolean("cropping") : cropping;
+        maxFiles = options.hasKey("maxFiles") ? options.getInt("maxFiles") : null;
         cropperActiveWidgetColor = options.hasKey("cropperActiveWidgetColor") ? options.getString("cropperActiveWidgetColor") : cropperActiveWidgetColor;
         cropperStatusBarColor = options.hasKey("cropperStatusBarColor") ? options.getString("cropperStatusBarColor") : cropperStatusBarColor;
         cropperToolbarColor = options.hasKey("cropperToolbarColor") ? options.getString("cropperToolbarColor") : cropperToolbarColor;
@@ -319,24 +324,26 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
 
     private void initiatePicker(final Activity activity) {
         try {
-            final Intent galleryIntent = new Intent(Intent.ACTION_GET_CONTENT);
+
+            ImagePicker picker = ImagePicker.create(this);
 
             if (cropping || mediaType.equals("photo")) {
-                galleryIntent.setType("image/*");
+                picker = picker.includeVideo(false);
             } else if (mediaType.equals("video")) {
-                galleryIntent.setType("video/*");
+                picker = picker.includeVideo(true);
             } else {
-                galleryIntent.setType("*/*");
-                String[] mimetypes = {"image/*", "video/*"};
-                galleryIntent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                picker = picker.includeVideo(true);
             }
 
-            galleryIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            galleryIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple);
-            galleryIntent.addCategory(Intent.CATEGORY_OPENABLE);
+            if (multiple)
+              picker = picker.multi();
 
-            final Intent chooserIntent = Intent.createChooser(galleryIntent, "Pick an image");
-            activity.startActivityForResult(chooserIntent, IMAGE_PICKER_REQUEST);
+            if (maxFiles != null)
+              picker = picker.limit(maxFiles);
+
+            picker
+              .toolbarImageTitle("Pick an image")
+              .start(IMAGE_PICKER_REQUEST);
         } catch (Exception e) {
             resultCollector.notifyProblem(E_FAILED_TO_SHOW_PICKER, e);
         }
@@ -622,25 +629,20 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             resultCollector.notifyProblem(E_PICKER_CANCELLED_KEY, E_PICKER_CANCELLED_MSG);
         } else if (resultCode == Activity.RESULT_OK) {
             if (multiple) {
-                ClipData clipData = data.getClipData();
+                List<Image> images = ImagePicker.getImages(data);
 
                 try {
-                    // only one image selected
-                    if (clipData == null) {
-                        resultCollector.setWaitCount(1);
-                        getAsyncSelection(activity, data.getData(), false);
-                    } else {
-                        resultCollector.setWaitCount(clipData.getItemCount());
-                        for (int i = 0; i < clipData.getItemCount(); i++) {
-                            getAsyncSelection(activity, clipData.getItemAt(i).getUri(), false);
-                        }
+                    resultCollector.setWaitCount(images.size());
+                    for (int i = 0; i < images.size(); i++) {
+                        getAsyncSelection(activity, Uri.fromFile(new File(images.get(i).getPath())), false);
                     }
                 } catch (Exception ex) {
                     resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, ex.getMessage());
                 }
 
             } else {
-                Uri uri = data.getData();
+                Image image = ImagePicker.getFirstImageOrNull(data);
+                Uri uri = image != null ? Uri.fromFile(new File(image.getPath()) : null;
 
                 if (uri == null) {
                     resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, "Cannot resolve image url");
