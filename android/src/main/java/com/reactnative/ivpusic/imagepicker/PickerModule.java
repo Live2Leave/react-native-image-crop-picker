@@ -92,7 +92,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
     private final String DEFAULT_WIDGET_COLOR = "#03A9F4";
     private int width = 200;
     private int height = 200;
-    private int maxFiles = null;
+    private int maxFiles = 0;
 
     private Uri mCameraCaptureURI;
     private String mCurrentPhotoPath;
@@ -126,7 +126,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
         width = options.hasKey("width") ? options.getInt("width") : width;
         height = options.hasKey("height") ? options.getInt("height") : height;
         cropping = options.hasKey("cropping") ? options.getBoolean("cropping") : cropping;
-        maxFiles = options.hasKey("maxFiles") ? options.getInt("maxFiles") : null;
+        maxFiles = options.hasKey("maxFiles") ? options.getInt("maxFiles") : 0;
         cropperActiveWidgetColor = options.hasKey("cropperActiveWidgetColor") ? options.getString("cropperActiveWidgetColor") : cropperActiveWidgetColor;
         cropperStatusBarColor = options.hasKey("cropperStatusBarColor") ? options.getString("cropperStatusBarColor") : cropperStatusBarColor;
         cropperToolbarColor = options.hasKey("cropperToolbarColor") ? options.getString("cropperToolbarColor") : cropperToolbarColor;
@@ -324,8 +324,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
 
     private void initiatePicker(final Activity activity) {
         try {
-
-            ImagePicker picker = ImagePicker.create(this);
+            ImagePicker picker = ImagePicker.create(activity);
 
             if (cropping || mediaType.equals("photo")) {
                 picker = picker.includeVideo(false);
@@ -338,7 +337,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             if (multiple)
               picker = picker.multi();
 
-            if (maxFiles != null)
+            if (maxFiles > 0)
               picker = picker.limit(maxFiles);
 
             picker
@@ -642,7 +641,7 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
 
             } else {
                 Image image = ImagePicker.getFirstImageOrNull(data);
-                Uri uri = image != null ? Uri.fromFile(new File(image.getPath()) : null;
+                Uri uri = image != null ? Uri.fromFile(new File(image.getPath())) : null;
 
                 if (uri == null) {
                     resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, "Cannot resolve image url");
