@@ -340,7 +340,8 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             if (maxFiles > 0)
               picker = picker.limit(maxFiles);
 
-            picker
+            picker.
+              .folderMode(true)
               .toolbarImageTitle("Pick an image")
               .start(IMAGE_PICKER_REQUEST);
         } catch (Exception e) {
